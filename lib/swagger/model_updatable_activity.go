@@ -21,7 +21,7 @@ type UpdatableActivity struct {
 	// The name of the activity
 	Name string `json:"name,omitempty"`
 	// Deprecated. Prefer to use sport_type. In a request where both type and sport_type are present, this field will be ignored
-	Type_ *ActivityType `json:"type,omitempty"`
+	Type_     string     `json:"type,omitempty"`
 	SportType *SportType `json:"sport_type,omitempty"`
 	// Identifier for the gear associated with the activity. ‘none’ clears gear from activity
 	GearId string `json:"gear_id,omitempty"`

@@ -25,7 +25,7 @@ type SummaryClub struct {
 	// Deprecated. Prefer to use activity_types.
 	SportType string `json:"sport_type,omitempty"`
 	// The activity types that count for a club. This takes precedence over sport_type.
-	ActivityTypes []ActivityType `json:"activity_types,omitempty"`
+	ActivityTypes []string `json:"activity_types,omitempty"`
 	// The club's city.
 	City string `json:"city,omitempty"`
 	// The club's state or geographical region.
