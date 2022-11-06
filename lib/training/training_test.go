@@ -2,13 +2,16 @@ package training_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/SaphMB/jaunt/lib/mocks"
 	"github.com/SaphMB/jaunt/lib/swagger"
 	"github.com/SaphMB/jaunt/lib/training"
+	"github.com/antihax/optional"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,12 +23,25 @@ var _ = Describe("Training", func() {
 		mock_retriever *mocks.MockRetriever
 		resp           *http.Response
 		period         training.TrainingPeriod
+		logger         training.TrainingLogger
+		ctx            context.Context
+		options        *swagger.ActivitiesApiGetLoggedInAthleteActivitiesOpts
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mock_retriever = mocks.NewMockRetriever(ctrl)
 		resp = &http.Response{}
+		period = training.TrainingPeriod{
+			StartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC),
+			EndDate:   time.Date(2022, time.April, 30, 0, 0, 0, 0, time.UTC),
+		}
+		ctx = context.TODO()
+		options = &swagger.ActivitiesApiGetLoggedInAthleteActivitiesOpts{
+			After:  optional.NewInt32(int32(period.StartDate.Unix())),
+			Before: optional.NewInt32(int32(period.EndDate.Unix())),
+		}
+		logger = training.NewTrainingLogger(ctx, period, mock_retriever)
 	})
 
 	AfterEach(func() {
@@ -35,14 +51,10 @@ var _ = Describe("Training", func() {
 	Describe("Activities", func() {
 		Context("when the retriever returns an error", func() {
 			It("returns the error", func() {
-				logger := training.TrainingLogger{
-					TrainingPeriod: period,
-					Retriever:      mock_retriever,
-				}
 
 				mock_retriever.
 					EXPECT().
-					GetLoggedInAthleteActivities(gomock.Any(), gomock.Any()).
+					GetLoggedInAthleteActivities(ctx, options).
 					Times(1).
 					Return([]swagger.SummaryActivity{}, resp, errors.New("an error"))
 
@@ -60,15 +72,9 @@ var _ = Describe("Training", func() {
 					Body:       ioutil.NopCloser(bytes.NewBufferString("halt!")),
 				}
 
-				period := training.TrainingPeriod{}
-				logger := training.TrainingLogger{
-					TrainingPeriod: period,
-					Retriever:      mock_retriever,
-				}
-
 				mock_retriever.
 					EXPECT().
-					GetLoggedInAthleteActivities(gomock.Any(), gomock.Any()).
+					GetLoggedInAthleteActivities(ctx, options).
 					Times(1).
 					Return([]swagger.SummaryActivity{}, mock_resp, nil)
 
@@ -88,14 +94,9 @@ var _ = Describe("Training", func() {
 				}
 				defer ctrl.Finish()
 
-				logger := training.TrainingLogger{
-					TrainingPeriod: period,
-					Retriever:      mock_retriever,
-				}
-
 				mock_retriever.
 					EXPECT().
-					GetLoggedInAthleteActivities(gomock.Any(), gomock.Any()).
+					GetLoggedInAthleteActivities(ctx, options).
 					Times(1).
 					Return([]swagger.SummaryActivity{}, resp, nil)
 
@@ -106,20 +107,12 @@ var _ = Describe("Training", func() {
 		})
 
 		It("returns an error with the status code and the reader error", func() {
-			ctrl := gomock.NewController(GinkgoT())
-			mock_retriever := mocks.NewMockRetriever(ctrl)
 			mock_resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Status:     "OK",
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 			}
 			defer ctrl.Finish()
-
-			period := training.TrainingPeriod{}
-			logger := training.TrainingLogger{
-				TrainingPeriod: period,
-				Retriever:      mock_retriever,
-			}
 
 			expected_activities := []swagger.SummaryActivity{
 				{
@@ -132,7 +125,7 @@ var _ = Describe("Training", func() {
 
 			mock_retriever.
 				EXPECT().
-				GetLoggedInAthleteActivities(gomock.Any(), gomock.Any()).
+				GetLoggedInAthleteActivities(ctx, options).
 				Times(1).
 				Return(expected_activities, mock_resp, nil)
 

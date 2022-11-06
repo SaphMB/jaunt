@@ -9,6 +9,7 @@ import (
 
 	"github.com/SaphMB/jaunt/lib/retriever"
 	"github.com/SaphMB/jaunt/lib/swagger"
+	"github.com/antihax/optional"
 )
 
 type TrainingPeriod struct {
@@ -24,8 +25,16 @@ type TrainingLogger struct {
 	Retriever      retriever.Retriever
 }
 
+func NewTrainingLogger(ctx context.Context, period TrainingPeriod, retriever retriever.Retriever) TrainingLogger {
+	return TrainingLogger{
+		ctx:            ctx,
+		TrainingPeriod: period,
+		Retriever:      retriever,
+	}
+}
+
 func (t TrainingLogger) Activities() (activities []swagger.SummaryActivity, err error) {
-	activities, resp, err := t.Retriever.GetLoggedInAthleteActivities(t.ctx, nil)
+	activities, resp, err := t.Retriever.GetLoggedInAthleteActivities(t.ctx, t.activityOptions())
 	if err != nil {
 		return []swagger.SummaryActivity{}, fmt.Errorf("error retrieving activities: %s", err.Error())
 	}
@@ -40,4 +49,11 @@ func (t TrainingLogger) Activities() (activities []swagger.SummaryActivity, err 
 
 	defer resp.Body.Close()
 	return activities, nil
+}
+
+func (t TrainingLogger) activityOptions() *swagger.ActivitiesApiGetLoggedInAthleteActivitiesOpts {
+	return &swagger.ActivitiesApiGetLoggedInAthleteActivitiesOpts{
+		Before: optional.NewInt32(int32(t.TrainingPeriod.EndDate.Unix())),
+		After:  optional.NewInt32(int32(t.TrainingPeriod.StartDate.Unix())),
+	}
 }
