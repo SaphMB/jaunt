@@ -31,8 +31,5 @@ jobs:
 workflows:
   go-deploy:
     jobs:
-      - golang/install:
-          cache: true
-          version: 1.22.1
       - test-and-build
 
